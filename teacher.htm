@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4E 課堂積分拍賣會 - 老師控制台</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --gold: #f59e0b;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.85);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif; }
+
+        body {
+            background: radial-gradient(circle at top, #1e1b4b, #0f172a 70%);
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(to right, #fde047, #f59e0b, #fb7185);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
+
+        .db-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn:active:not(:disabled) { transform: scale(0.96); }
+
+        .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        .btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3); }
+        .btn-green { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); }
+        .btn-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+        .btn-red { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
+        .btn-gray { background: #475569; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 24px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 拍賣主舞台 */
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            padding: 6px 16px;
+            border-radius: 99px;
+            font-weight: 900;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+        }
+        .status-idle { background: #334155; color: #cbd5e1; }
+        .status-bidding { background: #059669; color: #ecfdf5; box-shadow: 0 0 15px #10b981; animation: pulse 1.5s infinite; }
+        .status-test { background: #7c3aed; color: #f3e8ff; box-shadow: 0 0 15px #8b5cf6; }
+        .status-sold { background: #d97706; color: #fef3c7; }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+
+        .prize-setup {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 14px;
+            border-radius: 16px;
+        }
+        .prize-setup input {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .prize-setup input[type="text"] { flex: 1; }
+        .prize-setup input[type="number"] { width: 110px; }
+
+        .auction-display {
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+            border: 2px solid rgba(245, 158, 11, 0.4);
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .prize-title {
+            font-size: 1.6rem;
+            color: #94a3b8;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .current-price {
+            font-size: 5rem;
+            font-weight: 900;
+            color: #fde047;
+            text-shadow: 0 0 30px rgba(253, 224, 71, 0.4);
+            line-height: 1.1;
+            margin: 10px 0;
+        }
+        .current-price span { font-size: 1.8rem; color: #f59e0b; }
+
+        .highest-bidder {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+            display: inline-block;
+            padding: 8px 24px;
+            border-radius: 14px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            margin-top: 8px;
+        }
+
+        /* 3秒冷靜期遮罩條 */
+        .cooldown-banner {
+            margin-top: 18px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            font-size: 1.3rem;
+            font-weight: 900;
+            display: none;
+        }
+        .cooldown-banner.active { display: block; animation: shake 0.4s; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        .flow-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .flow-controls .btn { justify-content: center; padding: 15px; font-size: 1.1rem; }
+
+        /* 歷史出價紀錄 */
+        .bid-history {
+            margin-top: 20px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 14px;
+            padding: 14px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .bid-history h4 { font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.95rem;
+        }
+
+        /* 右側學生積分榜 */
+        .students-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+            gap: 10px;
+            max-height: 620px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .stu-chip {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 8px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .stu-chip.leader {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.2));
+            border-color: #f59e0b;
+            transform: scale(1.03);
+        }
+        .stu-chip .id { font-size: 0.75rem; color: #94a3b8; }
+        .stu-chip .name { font-size: 1.05rem; font-weight: 800; margin: 2px 0; }
+        .stu-chip .pts { font-size: 1.1rem; font-weight: 900; color: #34d399; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>🔨 4E 課堂積分拍賣會（老師端）</h1>
+            <div id="conn-status" style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">📡 正在連線至 Realtime Database...</div>
+        </div>
+        <div class="db-controls">
+            <button class="btn btn-blue" onclick="loadFromFirestore()">📥 從 Firestore 載入分數</button>
+            <button class="btn btn-green" onclick="saveToFirestore()">📤 將分數儲存回 Firestore</button>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- 左側：拍賣控制中心 -->
+        <div class="panel">
+            <div class="stage-header">
+                <h2 style="font-size: 1.3rem;">🎪 拍賣舞台控制</h2>
+                <span id="status-badge" class="status-badge status-idle">⏸ 未開始第一輪拍賣</span>
+            </div>
+
+            <!-- 獎品設定區 -->
+            <div class="prize-setup">
+                <input type="text" id="prize-name-input" placeholder="輸入獎品名稱（例如：免功課券一張）" value="神秘小禮物 #1">
+                <input type="number" id="start-price-input" placeholder="底價" value="0" min="0">
+                <button class="btn btn-gray" onclick="prepareNextPrize()">🎁 準備下一份獎品</button>
+            </div>
+
+            <!-- 拍賣大螢幕 -->
+            <div class="auction-display">
+                <div class="prize-title" id="display-prize-name">等待老師準備獎品...</div>
+                <div class="current-price" id="display-price">0 <span>分</span></div>
+                <div class="highest-bidder" id="display-bidder">尚無人出價</div>
+
+                <div class="cooldown-banner" id="cooldown-banner">
+                    ⏳ 冷靜倒數中：<span id="cooldown-sec">3.0</span> 秒（暫停出價）
+                </div>
+            </div>
+
+            <!-- 流程按鈕 -->
+            <div class="flow-controls">
+                <button class="btn btn-green" id="btn-start-real" onclick="startAuction(false)">🚀 開始正式拍賣</button>
+                <button class="btn btn-purple" id="btn-start-test" onclick="startAuction(true)">🧪 開始測試拍賣 (不扣分)</button>
+                <button class="btn btn-gold" id="btn-deal" onclick="finalizeDeal()" disabled>🔨 成交並處理分數</button>
+                <button class="btn btn-red" id="btn-cancel" onclick="resetCurrentRound()">🔄 重置本輪 / 流拍</button>
+            </div>
+
+            <!-- 即時出價紀錄 -->
+            <div class="bid-history">
+                <h4>📜 本輪出價紀錄 (最新在最上)</h4>
+                <div id="history-list">
+                    <div style="color: #64748b; font-size: 0.9rem;">暫無出價紀錄</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：Realtime Database 學生即時積分 -->
+        <div class="panel">
+            <div class="stage-header">
+                <h2 style="font-size: 1.3rem;">👥 學生即時可用積分 (RTDB)</h2>
+                <span style="font-size: 0.85rem; color: #94a3b8;">共 32 人</span>
+            </div>
+            <div class="students-list" id="students-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. Firebase 初始化 (Firestore + RTDB)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBr0-oNmRN859g6bfGDVjSdA1brJC8CxNs",
+            authDomain: "ltmps-c92a0.firebaseapp.com",
+            databaseURL: "https://ltmps-c92a0-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "ltmps-c92a0",
+            storageBucket: "ltmps-c92a0.firebasestorage.app",
+            messagingSenderId: "716255242034",
+            appId: "1:716255242034:web:b25a037869d8a9de6f992b"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const firestore = firebase.firestore();
+        const rtdb = firebase.database();
+
+        const fsScoresRef = firestore.collection('ClassManagement').doc('Class4E_Scores');
+        const fsBackupRef = firestore.collection('ClassManagement_4E_Backups');
+        const auctionRef = rtdb.ref('Auction4E');
+        const stateRef = rtdb.ref('Auction4E/state');
+        const studentsRef = rtdb.ref('Auction4E/students');
+        const historyRef = rtdb.ref('Auction4E/history');
+
+        const rawStudents = [
+            "陳卓謙", "陳賀楠", "陳子正", "陳奕謙", "陳禹衡",
+            "鄭斯豪", "招卓康", "莊榳昊", "丁安妮", "馮溢匡",
+            "郭慧瑤", "許悅", "關海泠", "關海瑤", "郭思翹",
+            "黎晞彤", "李海琳", "梁靖童", "梁頌朗", "梁僖悅",
+            "梁梓童", "李詠晴", "文樂兒", "吳梓謙", "吳泳汶",
+            "彭瀚程", "譚健希", "譚文昊", "曾立言", "謝思睿",
+            "黃芊林", "俞逸澧"
+        ];
+
+        let localStudents = {};
+        let currentState = null;
+        let roundCount = 1;
+        let serverTimeOffset = 0;
+
+        // 取得 Firebase 伺服器時間差，確保3秒冷靜期精準同步
+        rtdb.ref('.info/serverTimeOffset').on('value', (snap) => {
+            serverTimeOffset = snap.val() || 0;
+        });
+
+        // 監聽連線狀態
+        rtdb.ref('.info/connected').on('value', (snap) => {
+            const el = document.getElementById('conn-status');
+            if (snap.val() === true) {
+                el.innerHTML = '🟢 已連線至 Realtime Database（即時同步中）';
+                el.style.color = '#34d399';
+            } else {
+                el.innerHTML = '🔴 資料庫連線中斷...';
+                el.style.color = '#f87171';
+            }
+        });
+
+        // ==========================================
+        // 2. Firestore <-> Realtime Database 資料同步
+        // ==========================================
+        async function loadFromFirestore() {
+            if (!confirm('確定要從 Firestore 載入最新分數到拍賣系統嗎？\n（這將會覆蓋目前拍賣系統中的學生分數，並將拍賣重設為「未開始」狀態）')) return;
+
+            try {
+                const doc = await fsScoresRef.get();
+                if (!doc.exists) {
+                    alert('❌ 找不到 Firestore 分數資料！');
+                    return;
+                }
+                const fsData = doc.data();
+                const rtdbStudents = {};
+
+                rawStudents.forEach((name, idx) => {
+                    const id = idx + 1;
+                    rtdbStudents[id] = {
+                        id: id,
+                        name: name,
+                        score: fsData[id] || 0
+                    };
+                });
+
+                // 寫入 RTDB 並初始化未開始狀態
+                await auctionRef.set({
+                    students: rtdbStudents,
+                    history: null,
+                    state: {
+                        status: 'IDLE', // IDLE | BIDDING | TEST_BIDDING | SOLD
+                        isTest: false,
+                        prizeName: '尚未設定獎品',
+                        currentPrice: 0,
+                        highestBidderId: null,
+                        highestBidderName: '尚無人出價',
+                        cooldownUntil: 0
+                    }
+                });
+
+                roundCount = 1;
+                document.getElementById('prize-name-input').value = `神秘小禮物 #1`;
+                alert('✅ 已成功從 Firestore 載入全班分數！目前為「未開始第一輪拍賣」狀態。');
+            } catch (err) {
+                console.error(err);
+                alert('❌ 載入失敗：' + err.message);
+            }
+        }
+
+        async function saveToFirestore() {
+            if (Object.keys(localStudents).length === 0) {
+                alert('⚠️ 目前 Realtime Database 沒有學生分數資料可儲存！');
+                return;
+            }
+            if (!confirm('確定要將目前拍賣後的剩餘分數「寫回 Firestore」嗎？\n（系統會自動先在 Firestore 建立一筆備份以策安全）')) return;
+
+            try {
+                // 1. 先讀取舊資料作自動備份
+                const oldDoc = await fsScoresRef.get();
+                if (oldDoc.exists) {
+                    const now = new Date();
+                    await fsBackupRef.add({
+                        timestamp: now.getTime(),
+                        dateStr: now.toLocaleString('zh-HK') + ' (拍賣會寫回前自動備份)',
+                        scores: oldDoc.data()
+                    });
+                }
+
+                // 2. 整理新分數並寫入 Firestore
+                const updatedScores = {};
+                Object.values(localStudents).forEach(s => {
+                    updatedScores[s.id] = s.score;
+                });
+
+                await fsScoresRef.set(updatedScores, { merge: true });
+                alert('✅ 分數已成功更新至 Firestore！（舊紀錄亦已自動備份）');
+            } catch (err) {
+                console.error(err);
+                alert('❌ 寫回 Firestore 失敗：' + err.message);
+            }
+        }
+
+        // ==========================================
+        // 3. 拍賣流程控制
+        // ==========================================
+        function prepareNextPrize() {
+            const prizeInput = document.getElementById('prize-name-input');
+            const startPrice = Math.max(0, parseInt(document.getElementById('start-price-input').value) || 0);
+            const prizeName = prizeInput.value.trim() || `神秘小禮物 #${roundCount}`;
+
+            historyRef.remove();
+            stateRef.set({
+                status: 'IDLE',
+                isTest: false,
+                prizeName: prizeName,
+                currentPrice: startPrice,
+                highestBidderId: null,
+                highestBidderName: '尚無人出價',
+                cooldownUntil: 0
+            });
+        }
+
+        function startAuction(isTestMode) {
+            if (Object.keys(localStudents).length === 0) {
+                alert('⚠️ 請先按右上角「從 Firestore 載入分數」！');
+                return;
+            }
+            const prizeName = document.getElementById('prize-name-input').value.trim() || `神秘小禮物 #${roundCount}`;
+            const startPrice = Math.max(0, parseInt(document.getElementById('start-price-input').value) || 0);
+
+            // 若目前已在拍賣中或剛準備好，直接切換為開始拍賣
+            const currentP = (currentState && currentState.status === 'IDLE' && currentState.prizeName === prizeName)
+                ? currentState.currentPrice
+                : startPrice;
+
+            if (!currentState || currentState.status === 'SOLD') {
+                historyRef.remove();
+            }
+
+            stateRef.set({
+                status: isTestMode ? 'TEST_BIDDING' : 'BIDDING',
+                isTest: isTestMode,
+                prizeName: isTestMode ? `【測試拍賣】${prizeName}` : prizeName,
+                currentPrice: currentP,
+                highestBidderId: null,
+                highestBidderName: '尚無人出價',
+                cooldownUntil: 0
+            });
+        }
+
+        async function finalizeDeal() {
+            if (!currentState) return;
+            if (!currentState.highestBidderId) {
+                alert('⚠️ 目前尚無人出價，無法成交！');
+                return;
+            }
+
+            // 檢查是否還在3秒冷靜期
+            const now = Date.now() + serverTimeOffset;
+            if (now < currentState.cooldownUntil) {
+                alert('⏳ 還在 3 秒冷靜期內，請等倒數結束後再按成交！');
+                return;
+            }
+
+            const winnerId = currentState.highestBidderId;
+            const winnerName = currentState.highestBidderName;
+            const finalPrice = currentState.currentPrice;
+            const isTest = currentState.isTest;
+
+            if (isTest) {
+                // 測試模式：不扣分
+                await stateRef.update({
+                    status: 'SOLD',
+                    cooldownUntil: 0
+                });
+                fireConfetti();
+                playWinSound();
+                alert(`🧪 測試拍賣結束！\n得標者：${winnerId}號 ${winnerName}（出價 ${finalPrice} 分）\n※ 測試模式不會扣除任何分數。`);
+            } else {
+                // 正式模式：扣除中標者分數
+                if (!confirm(`🔨 確定以【${finalPrice} 分】成交給【${winnerId}號 ${winnerName}】並扣除分數嗎？`)) return;
+
+                const winnerScoreRef = rtdb.ref(`Auction4E/students/${winnerId}/score`);
+                await winnerScoreRef.transaction((currScore) => {
+                    return Math.max(0, (currScore || 0) - finalPrice);
+                });
+
+                await stateRef.update({
+                    status: 'SOLD',
+                    cooldownUntil: 0
+                });
+
+                roundCount++;
+                document.getElementById('prize-name-input').value = `神秘小禮物 #${roundCount}`;
+                document.getElementById('start-price-input').value = 0;
+
+                fireConfetti();
+                playWinSound();
+            }
+        }
+
+        function resetCurrentRound() {
+            if (!confirm('確定要重置本輪拍賣嗎？（出價將清空，不會扣分）')) return;
+            prepareNextPrize();
+        }
+
+        // ==========================================
+        // 4. 即時監聽與畫面更新
+        // ==========================================
+        let prevPrice = -1;
+
+        stateRef.on('value', (snap) => {
+            const data = snap.val();
+            if (!data) {
+                // 資料庫完全空白時的預設顯示
+                document.getElementById('status-badge').className = 'status-badge status-idle';
+                document.getElementById('status-badge').textContent = '⏸ 未載入資料 / 未開始';
+                return;
+            }
+
+            currentState = data;
+
+            // 若價格有變動且有人出價，播放提示音
+            if (prevPrice !== -1 && data.currentPrice > prevPrice && data.highestBidderId) {
+                playBidSound();
+            }
+            prevPrice = data.currentPrice;
+
+            // 更新狀態標籤與按鈕可用性
+            const badge = document.getElementById('status-badge');
+            const btnDeal = document.getElementById('btn-deal');
+
+            if (data.status === 'IDLE') {
+                badge.className = 'status-badge status-idle';
+                badge.textContent = '⏸ 準備就緒 / 未開始拍賣';
+                btnDeal.disabled = true;
+            } else if (data.status === 'BIDDING') {
+                badge.className = 'status-badge status-bidding';
+                badge.textContent = '🔥 正式拍賣進行中！';
+                btnDeal.disabled = !data.highestBidderId;
+            } else if (data.status === 'TEST_BIDDING') {
+                badge.className = 'status-badge status-test';
+                badge.textContent = '🧪 拍賣測試進行中 (不扣分)';
+                btnDeal.disabled = !data.highestBidderId;
+            } else if (data.status === 'SOLD') {
+                badge.className = 'status-badge status-sold';
+                badge.textContent = data.isTest ? '✅ 測試成交 (未扣分)' : '🎉 正式成交！已扣分';
+                btnDeal.disabled = true;
+            }
+
+            document.getElementById('display-prize-name').textContent = data.prizeName;
+            document.getElementById('display-price').innerHTML = `${data.currentPrice} <span>分</span>`;
+
+            const bidderEl = document.getElementById('display-bidder');
+            if (data.highestBidderId) {
+                bidderEl.textContent = `👑 最高出價：${data.highestBidderId}號 ${data.highestBidderName}`;
+                bidderEl.style.color = '#fde047';
+            } else {
+                bidderEl.textContent = '尚無人出價';
+                bidderEl.style.color = '#94a3b8';
+            }
+
+            renderStudentsGrid();
+        });
+
+        studentsRef.on('value', (snap) => {
+            localStudents = snap.val() || {};
+            renderStudentsGrid();
+        });
+
+        historyRef.limitToLast(15).on('value', (snap) => {
+            const listEl = document.getElementById('history-list');
+            const val = snap.val();
+            if (!val) {
+                listEl.innerHTML = '<div style="color: #64748b; font-size: 0.9rem;">暫無出價紀錄</div>';
+                return;
+            }
+            const items = Object.values(val).reverse();
+            listEl.innerHTML = items.map(item => `
+                <div class="history-item">
+                    <span><strong>${item.studentId}號 ${item.studentName}</strong></span>
+                    <span style="color: #fde047; font-weight: bold;">出價 ${item.price} 分</span>
+                </div>
+            `).join('');
+        });
+
+        function renderStudentsGrid() {
+            const grid = document.getElementById('students-grid');
+            const leaderId = currentState ? currentState.highestBidderId : null;
+
+            const list = Object.values(localStudents).sort((a, b) => a.id - b.id);
+            if (list.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 30px; color:#94a3b8;">請先點擊上方「從 Firestore 載入分數」</div>';
+                return;
+            }
+
+            grid.innerHTML = list.map(s => `
+                <div class="stu-chip ${s.id === leaderId ? 'leader' : ''}">
+                    <div class="id">${s.id}號</div>
+                    <div class="name">${s.name}</div>
+                    <div class="pts">${s.score} 分</div>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // 5. 3秒冷靜倒數計時器循環
+        // ==========================================
+        setInterval(() => {
+            const banner = document.getElementById('cooldown-banner');
+            const secEl = document.getElementById('cooldown-sec');
+
+            if (!currentState || (currentState.status !== 'BIDDING' && currentState.status !== 'TEST_BIDDING')) {
+                banner.classList.remove('active');
+                return;
+            }
+
+            const now = Date.now() + serverTimeOffset;
+            const remaining = currentState.cooldownUntil - now;
+
+            if (remaining > 0) {
+                banner.classList.add('active');
+                secEl.textContent = (remaining / 1000).toFixed(1);
+            } else {
+                banner.classList.remove('active');
+            }
+        }, 100);
+
+        // ==========================================
+        // 6. 音效與彩帶特效
+        // ==========================================
+        function playBidSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } catch (e) {}
+        }
+
+        function playWinSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.1 + 0.4);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.1);
+                    osc.stop(ctx.currentTime + i * 0.1 + 0.4);
+                });
+            } catch (e) {}
+        }
+
+        function fireConfetti() {
+            confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 }, zIndex: 9999 });
+        }
+    </script>
+</body>
+</html>
