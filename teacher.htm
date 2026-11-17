@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4E 課堂積分拍賣會 - 老師控制台 (進階獎品庫版)</title>
+    <title>4E 課堂積分拍賣會 - 老師控制台 (防重複登入 + 視覺特效版)</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -14,17 +14,26 @@
         :root {
             --primary: #4f46e5;
             --gold: #f59e0b;
-            --bg-dark: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.88);
+            --bg-dark: #090d16;
+            --card-bg: rgba(15, 23, 42, 0.78);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif; }
 
         body {
-            background: radial-gradient(circle at top, #1e1b4b, #0f172a 70%);
+            background: linear-gradient(-45deg, #090d16, #1e1b4b, #311042, #0f172a);
+            background-size: 400% 400%;
+            animation: auroraBG 18s ease infinite;
             color: #f8fafc;
             min-height: 100vh;
             padding: 18px;
+            overflow-x: hidden;
+        }
+
+        @keyframes auroraBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .header {
@@ -34,21 +43,30 @@
             flex-wrap: wrap;
             gap: 15px;
             background: rgba(255, 255, 255, 0.06);
-            padding: 14px 22px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(16px);
+            padding: 14px 24px;
+            border-radius: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
             margin-bottom: 20px;
-            max-width: 1560px;
+            max-width: 1600px;
             margin-left: auto;
             margin-right: auto;
         }
 
         .header h1 {
-            font-size: 1.7rem;
-            background: linear-gradient(to right, #fde047, #f59e0b, #fb7185);
+            font-size: 1.75rem;
+            background: linear-gradient(to right, #fef08a, #f59e0b, #fb7185, #38bdf8);
+            background-size: 200% auto;
+            animation: shineText 4s linear infinite;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        @keyframes shineText {
+            to { background-position: 200% center; }
         }
 
         .db-controls { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -59,36 +77,39 @@
             border-radius: 12px;
             font-weight: 800;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
             font-size: 0.92rem;
             color: white;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
+            position: relative;
+            overflow: hidden;
         }
         .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
-        .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
-        .btn:active:not(:disabled) { transform: scale(0.96); }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.12); }
+        .btn:active:not(:disabled) { transform: scale(0.95); }
 
-        .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
-        .btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3); }
-        .btn-green { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); }
-        .btn-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
-        .btn-red { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
-        .btn-gray { background: #475569; }
-        .btn-sm { padding: 5px 10px; font-size: 0.82rem; border-radius: 8px; }
+        .btn-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
+        .btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 4px 15px rgba(109, 40, 217, 0.4); }
+        .btn-green { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4); }
+        .btn-gold { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45); }
+        .btn-red { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4); }
+        .btn-gray { background: rgba(71, 85, 105, 0.85); border: 1px solid rgba(255,255,255,0.15); }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 8px; }
+        .btn-xs { padding: 3px 8px; font-size: 0.72rem; border-radius: 6px; }
 
-        /* 三欄式佈局：左獎品庫、中拍賣舞台、右學生積分 */
+        /* 三欄式佈局 */
         .main-grid {
             display: grid;
-            grid-template-columns: 360px 1.25fr 1fr;
+            grid-template-columns: 340px 1.2fr 1.1fr;
             gap: 20px;
-            max-width: 1560px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
-        @media (max-width: 1280px) {
+        @media (max-width: 1320px) {
             .main-grid { grid-template-columns: 1fr 1fr; }
             .students-panel { grid-column: 1 / -1; }
         }
@@ -98,11 +119,11 @@
 
         .panel {
             background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 24px;
             padding: 20px;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
         }
@@ -113,6 +134,7 @@
             align-items: center;
             margin-bottom: 16px;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         /* 左側：獎品清單管理 */
@@ -136,14 +158,15 @@
             font-size: 0.95rem;
             font-weight: bold;
             outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .add-prize-form input:focus { border-color: #f59e0b; }
+        .add-prize-form input:focus { border-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
         .add-prize-form input[type="text"] { flex: 1; min-width: 0; }
-        .add-prize-form input[type="number"] { width: 85px; }
+        .add-prize-form input[type="number"] { width: 82px; }
 
         .prize-list-container {
             flex: 1;
-            max-height: 460px;
+            max-height: 480px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -152,7 +175,7 @@
         }
 
         .prize-item {
-            background: rgba(15, 23, 42, 0.75);
+            background: rgba(30, 41, 59, 0.75);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 14px;
             padding: 10px 12px;
@@ -160,27 +183,28 @@
             justify-content: space-between;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
+            transition: all 0.25s;
         }
         .prize-item.active-prize {
             border: 2px solid #f59e0b;
-            background: rgba(245, 158, 11, 0.18);
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(180, 83, 9, 0.15));
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
         }
         .prize-item.rolling-highlight {
             border: 2px solid #38bdf8;
-            background: rgba(56, 189, 248, 0.25);
-            transform: scale(1.02);
+            background: rgba(56, 189, 248, 0.3);
+            transform: scale(1.03);
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
         }
         .prize-item.sold-prize {
-            opacity: 0.55;
-            background: rgba(15, 23, 42, 0.4);
+            opacity: 0.52;
+            background: rgba(15, 23, 42, 0.45);
             border-style: dashed;
         }
         .prize-item-info { flex: 1; min-width: 0; }
         .prize-item-title {
             font-weight: 900;
-            font-size: 1rem;
+            font-size: 0.98rem;
             color: #f8fafc;
             word-break: break-word;
         }
@@ -206,21 +230,29 @@
             letter-spacing: 0.5px;
         }
         .status-idle { background: #334155; color: #cbd5e1; }
-        .status-bidding { background: #059669; color: #ecfdf5; box-shadow: 0 0 15px #10b981; animation: pulse 1.5s infinite; }
-        .status-test { background: #7c3aed; color: #f3e8ff; box-shadow: 0 0 15px #8b5cf6; }
-        .status-sold { background: #d97706; color: #fef3c7; }
+        .status-bidding { background: #059669; color: #ecfdf5; box-shadow: 0 0 20px #10b981; animation: pulse 1.5s infinite; }
+        .status-test { background: #7c3aed; color: #f3e8ff; box-shadow: 0 0 20px #8b5cf6; }
+        .status-sold { background: #d97706; color: #fef3c7; box-shadow: 0 0 20px #f59e0b; }
 
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
 
         .auction-display {
-            background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+            background: radial-gradient(circle at center, rgba(30, 41, 59, 0.95), rgba(9, 13, 22, 0.98));
             border: 2px solid rgba(245, 158, 11, 0.45);
-            border-radius: 20px;
+            border-radius: 22px;
             padding: 28px 18px;
             text-align: center;
             position: relative;
             overflow: hidden;
             margin-bottom: 18px;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+        .auction-display.bid-flash {
+            animation: stageFlash 0.6s ease-out;
+        }
+        @keyframes stageFlash {
+            0% { box-shadow: 0 0 0 0 rgba(253, 224, 71, 0.8), inset 0 0 40px rgba(253, 224, 71, 0.4); border-color: #fef08a; transform: scale(1.02); }
+            100% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.45); transform: scale(1); }
         }
 
         .prize-title {
@@ -228,12 +260,13 @@
             color: #fff;
             font-weight: 900;
             margin-bottom: 6px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
         .base-price-tag {
             display: inline-block;
             background: rgba(255, 255, 255, 0.1);
             color: #cbd5e1;
-            padding: 3px 12px;
+            padding: 3px 14px;
             border-radius: 99px;
             font-size: 0.85rem;
             font-weight: bold;
@@ -241,32 +274,40 @@
         }
 
         .current-price {
-            font-size: 4.8rem;
+            font-size: 5rem;
             font-weight: 900;
             color: #fde047;
-            text-shadow: 0 0 30px rgba(253, 224, 71, 0.4);
+            text-shadow: 0 0 35px rgba(253, 224, 71, 0.55);
             line-height: 1.1;
             margin: 8px 0;
+            transition: transform 0.2s;
+        }
+        .current-price.pop { animation: pricePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pricePop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.18); color: #fff; }
+            100% { transform: scale(1); }
         }
         .current-price span { font-size: 1.6rem; color: #f59e0b; }
 
         .highest-bidder {
-            font-size: 1.6rem;
+            font-size: 1.55rem;
             font-weight: 900;
             color: #38bdf8;
             background: rgba(56, 189, 248, 0.15);
             display: inline-block;
-            padding: 8px 22px;
-            border-radius: 14px;
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 8px 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(56, 189, 248, 0.35);
             margin-top: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
         }
 
         .cooldown-banner {
             margin-top: 16px;
             padding: 10px;
             border-radius: 12px;
-            background: rgba(239, 68, 68, 0.22);
+            background: rgba(239, 68, 68, 0.25);
             border: 1px solid #ef4444;
             color: #fca5a5;
             font-size: 1.2rem;
@@ -286,15 +327,16 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
-        .flow-controls .btn { padding: 14px; font-size: 1.05rem; }
+        .flow-controls .btn { padding: 14px; font-size: 1.02rem; }
 
         .bid-history {
             margin-top: 16px;
-            background: rgba(15, 23, 42, 0.55);
+            background: rgba(15, 23, 42, 0.6);
             border-radius: 14px;
             padding: 12px;
-            max-height: 150px;
+            max-height: 155px;
             overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.06);
         }
         .bid-history h4 { font-size: 0.88rem; color: #94a3b8; margin-bottom: 6px; }
         .history-item {
@@ -303,35 +345,96 @@
             padding: 5px 8px;
             border-bottom: 1px solid rgba(255,255,255,0.06);
             font-size: 0.92rem;
+            animation: slideIn 0.25s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 右側學生積分與登入狀態榜 */
+        .online-summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .online-pill {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 800;
         }
 
-        /* 右側學生積分榜 */
         .students-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
-            gap: 8px;
-            max-height: 610px;
+            grid-template-columns: repeat(auto-fill, minmax(122px, 1fr));
+            gap: 9px;
+            max-height: 620px;
             overflow-y: auto;
             padding-right: 4px;
         }
 
         .stu-chip {
-            background: rgba(15, 23, 42, 0.72);
+            background: rgba(15, 23, 42, 0.78);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 8px 6px;
+            border-radius: 14px;
+            padding: 9px 7px;
             text-align: center;
-            transition: all 0.3s;
+            transition: all 0.25s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .stu-chip.is-online {
+            border-color: rgba(52, 211, 153, 0.5);
+            background: linear-gradient(160deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.85));
         }
         .stu-chip.leader {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.2));
-            border-color: #f59e0b;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.25));
+            border: 2px solid #f59e0b;
             transform: scale(1.03);
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.35);
         }
-        .stu-chip .id { font-size: 0.72rem; color: #94a3b8; }
-        .stu-chip .name { font-size: 1rem; font-weight: 800; margin: 2px 0; }
-        .stu-chip .pts { font-size: 1.05rem; font-weight: 900; color: #34d399; }
-        .stu-chip .spent { font-size: 0.75rem; color: #fbbf24; margin-top: 2px; font-weight: bold; }
+
+        .stu-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            margin-bottom: 2px;
+        }
+        .stu-chip .id { color: #94a3b8; font-weight: bold; }
+        .login-tag {
+            padding: 1px 6px;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 0.68rem;
+        }
+        .login-tag.on { background: rgba(16, 185, 129, 0.25); color: #6ee7b7; }
+        .login-tag.off { background: rgba(100, 116, 139, 0.25); color: #94a3b8; }
+
+        .stu-chip .name { font-size: 1.02rem; font-weight: 900; margin: 2px 0; color: #f8fafc; }
+        .stu-chip .pts { font-size: 1.02rem; font-weight: 900; color: #34d399; }
+        .stu-chip .spent { font-size: 0.74rem; color: #fbbf24; margin-top: 1px; font-weight: bold; }
+
+        .kick-btn {
+            margin-top: 6px;
+            width: 100%;
+            background: rgba(239, 68, 68, 0.22);
+            border: 1px solid rgba(239, 68, 68, 0.55);
+            color: #fca5a5;
+            border-radius: 8px;
+            padding: 4px 4px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .kick-btn:hover {
+            background: #ef4444;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -339,7 +442,7 @@
     <div class="header">
         <div>
             <h1>🔨 4E 課堂積分拍賣會（老師端）</h1>
-            <div id="conn-status" style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">📡 正在連線至 Realtime Database...</div>
+            <div id="conn-status" style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">📡 正在連線至 Realtime Database (Asia-Southeast1)...</div>
         </div>
         <div class="db-controls">
             <button class="btn btn-blue" onclick="loadFromFirestore()">📥 從 Firestore 載入分數</button>
@@ -379,7 +482,7 @@
             </div>
 
             <!-- 拍賣大螢幕 -->
-            <div class="auction-display">
+            <div class="auction-display" id="auction-stage-box">
                 <div class="prize-title" id="display-prize-name">請從左側選擇或隨機抽取獎品</div>
                 <div class="base-price-tag" id="display-base-price">底價：0 分</div>
                 <div class="current-price" id="display-price">0 <span>分</span></div>
@@ -407,11 +510,14 @@
             </div>
         </div>
 
-        <!-- 右側：Realtime Database 學生即時積分 -->
+        <!-- 右側：Realtime Database 學生即時積分與登入狀態 -->
         <div class="panel students-panel">
             <div class="stage-header">
-                <h2 style="font-size: 1.2rem;">👥 學生即時積分狀況</h2>
-                <span style="font-size: 0.82rem; color: #94a3b8;">餘分 / 已用</span>
+                <h2 style="font-size: 1.18rem;">👥 學生即時積分與登入狀況</h2>
+                <div class="online-summary">
+                    <span class="online-pill" id="online-count-badge">在線：0 / 32</span>
+                    <button class="btn btn-red btn-xs" onclick="forceLogoutAll()" title="讓所有學生退回選擇學號畫面">⏏ 全員登出</button>
+                </div>
             </div>
             <div class="students-list" id="students-grid"></div>
         </div>
@@ -419,7 +525,7 @@
 
     <script>
         // ==========================================
-        // 1. Firebase 初始化 (Firestore + RTDB)
+        // 1. Firebase 初始化 (指定 Asia-Southeast1 RTDB)
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyBr0-oNmRN859g6bfGDVjSdA1brJC8CxNs",
@@ -439,9 +545,9 @@
         const fsAuctionSummaryRef = firestore.collection('ClassManagement').doc('Class4E_AuctionSummary');
         const fsBackupRef = firestore.collection('ClassManagement_4E_Backups');
 
-        const auctionRef = rtdb.ref('Auction4E');
         const stateRef = rtdb.ref('Auction4E/state');
         const studentsRef = rtdb.ref('Auction4E/students');
+        const sessionsRef = rtdb.ref('Auction4E/sessions');
         const prizesRef = rtdb.ref('Auction4E/prizes');
         const historyRef = rtdb.ref('Auction4E/history');
 
@@ -456,6 +562,7 @@
         ];
 
         let localStudents = {};
+        let localSessions = {};
         let localPrizes = {};
         let currentState = null;
         let serverTimeOffset = 0;
@@ -480,7 +587,7 @@
         // 2. Firestore <-> Realtime Database 資料同步
         // ==========================================
         async function loadFromFirestore() {
-            if (!confirm('確定要從 Firestore 載入最新分數到拍賣系統嗎？\n（將重設學生已用分數為 0，並保留現有獎品庫或初始化未開始狀態）')) return;
+            if (!confirm('確定要從 Firestore 載入最新分數到拍賣系統嗎？\n（將重設學生已用分數為 0，並初始化未開始狀態）')) return;
 
             try {
                 const doc = await fsScoresRef.get();
@@ -497,9 +604,9 @@
                     rtdbStudents[id] = {
                         id: id,
                         name: name,
-                        initialScore: initialScore, // 載入時的原始分數
-                        score: initialScore,        // 目前剩餘分數
-                        spent: 0                    // 拍賣已使用分數
+                        initialScore: initialScore,
+                        score: initialScore,
+                        spent: 0
                     };
                 });
 
@@ -532,7 +639,6 @@
             if (!confirm('確定要將拍賣後的「剩餘分數」與「已使用分數紀錄」儲存回 Firestore 嗎？\n（系統會自動先在 Firestore 建立一筆備份）')) return;
 
             try {
-                // 1. 先備份舊主分數表
                 const oldDoc = await fsScoresRef.get();
                 if (oldDoc.exists) {
                     const now = new Date();
@@ -543,7 +649,6 @@
                     });
                 }
 
-                // 2. 更新主分數表 (剩餘分數) 與 拍賣分數狀況明細表 (包含已使用分數與剩餘分數)
                 const updatedScores = {};
                 const auctionSummary = {
                     updatedAt: new Date().toLocaleString('zh-HK'),
@@ -556,8 +661,8 @@
                         id: s.id,
                         name: s.name,
                         initialScore: s.initialScore ?? (s.score + (s.spent || 0)),
-                        spent: s.spent || 0,       // 使用了多少分 (例如 15)
-                        remaining: s.score      // 餘下多少分 (例如 35)
+                        spent: s.spent || 0,
+                        remaining: s.score
                     };
                 });
 
@@ -572,7 +677,21 @@
         }
 
         // ==========================================
-        // 3. 獎品庫管理：新增、選擇、隨機抽取
+        // 3. 強制登出學生控制（解決學生選錯學號）
+        // ==========================================
+        function forceLogoutStudent(id) {
+            const stuName = rawStudents[id - 1] || '';
+            if (!confirm(`確定要強制登出【${id}號 ${stuName}】嗎？\n該學生的裝置將會立即返回「選擇學號」畫面。`)) return;
+            sessionsRef.child(id).remove();
+        }
+
+        function forceLogoutAll() {
+            if (!confirm('⚠️ 確定要強制登出「全班所有學生」嗎？\n所有學生裝置都會退回選擇學號頁面。')) return;
+            sessionsRef.remove();
+        }
+
+        // ==========================================
+        // 4. 獎品庫管理：新增、選擇、隨機抽取
         // ==========================================
         function addPrizeToCatalog() {
             const nameInput = document.getElementById('new-prize-name');
@@ -677,7 +796,6 @@
             let count = 0;
             const maxRolls = 20;
             const interval = setInterval(() => {
-                // 移除舊高亮
                 document.querySelectorAll('.prize-item').forEach(el => el.classList.remove('rolling-highlight'));
                 const randPrize = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
                 const el = document.getElementById(`prize-row-${randPrize.id}`);
@@ -700,7 +818,7 @@
         }
 
         // ==========================================
-        // 4. 拍賣流程控制
+        // 5. 拍賣流程控制
         // ==========================================
         function startAuction(isTestMode) {
             if (Object.keys(localStudents).length === 0) {
@@ -761,7 +879,6 @@
             } else {
                 if (!confirm(`🔨 確定以【${finalPrice} 分】成交給【${winnerId}號 ${winnerName}】並扣除分數嗎？`)) return;
 
-                // 1. 原子更新該學生的剩餘分數 (score) 與累計使用分數 (spent)
                 const stuRef = rtdb.ref(`Auction4E/students/${winnerId}`);
                 await stuRef.transaction((stu) => {
                     if (!stu) return stu;
@@ -773,7 +890,6 @@
                     return stu;
                 });
 
-                // 2. 將該獎品標記為「已成交」，鎖定不可再被選或抽出
                 if (prizeId) {
                     await prizesRef.child(prizeId).update({
                         sold: true,
@@ -783,7 +899,6 @@
                     });
                 }
 
-                // 3. 更新拍賣狀態為已成交
                 await stateRef.update({
                     status: 'SOLD',
                     cooldownUntil: 0
@@ -815,7 +930,7 @@
         }
 
         // ==========================================
-        // 5. 即時監聽與畫面渲染
+        // 6. 即時監聽與畫面渲染
         // ==========================================
         let prevPrice = -1;
 
@@ -832,6 +947,7 @@
 
             if (prevPrice !== -1 && data.currentPrice > prevPrice && data.highestBidderId) {
                 playBidSound();
+                triggerBidAnimation();
             }
             prevPrice = data.currentPrice;
 
@@ -873,6 +989,16 @@
             renderStudentsGrid();
         });
 
+        function triggerBidAnimation() {
+            const stage = document.getElementById('auction-stage-box');
+            const price = document.getElementById('display-price');
+            stage.classList.remove('bid-flash');
+            price.classList.remove('pop');
+            void stage.offsetWidth;
+            stage.classList.add('bid-flash');
+            price.classList.add('pop');
+        }
+
         prizesRef.on('value', (snap) => {
             localPrizes = snap.val() || {};
             renderPrizeCatalog();
@@ -880,6 +1006,11 @@
 
         studentsRef.on('value', (snap) => {
             localStudents = snap.val() || {};
+            renderStudentsGrid();
+        });
+
+        sessionsRef.on('value', (snap) => {
+            localSessions = snap.val() || {};
             renderStudentsGrid();
         });
 
@@ -938,24 +1069,41 @@
             const grid = document.getElementById('students-grid');
             const leaderId = currentState ? currentState.highestBidderId : null;
 
+            // 計算在線人數
+            let onlineCount = 0;
+            rawStudents.forEach((_, idx) => {
+                const id = idx + 1;
+                if (localSessions[id] && localSessions[id].online) onlineCount++;
+            });
+            document.getElementById('online-count-badge').textContent = `在線：${onlineCount} / ${rawStudents.length}`;
+
             const list = Object.values(localStudents).sort((a, b) => a.id - b.id);
             if (list.length === 0) {
                 grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 30px; color:#94a3b8;">請先點擊上方「從 Firestore 載入分數」</div>';
                 return;
             }
 
-            grid.innerHTML = list.map(s => `
-                <div class="stu-chip ${s.id === leaderId ? 'leader' : ''}">
-                    <div class="id">${s.id}號</div>
-                    <div class="name">${s.name}</div>
-                    <div class="pts">餘 ${s.score} 分</div>
-                    <div class="spent">已用 ${s.spent || 0} 分</div>
-                </div>
-            `).join('');
+            grid.innerHTML = list.map(s => {
+                const isOnline = !!(localSessions[s.id] && localSessions[s.id].online);
+                return `
+                    <div class="stu-chip ${s.id === leaderId ? 'leader' : ''} ${isOnline ? 'is-online' : ''}">
+                        <div>
+                            <div class="stu-top-row">
+                                <span class="id">${s.id}號</span>
+                                <span class="login-tag ${isOnline ? 'on' : 'off'}">${isOnline ? '🟢 在線' : '⚪ 離線'}</span>
+                            </div>
+                            <div class="name">${s.name}</div>
+                            <div class="pts">餘 ${s.score} 分</div>
+                            <div class="spent">已用 ${s.spent || 0} 分</div>
+                        </div>
+                        ${isOnline ? `<button class="kick-btn" onclick="forceLogoutStudent(${s.id})">⏏ 強制登出</button>` : ''}
+                    </div>
+                `;
+            }).join('');
         }
 
         // ==========================================
-        // 6. 3秒冷靜倒數與音效特效
+        // 7. 3秒冷靜倒數與音效特效
         // ==========================================
         setInterval(() => {
             const banner = document.getElementById('cooldown-banner');
@@ -1029,7 +1177,7 @@
         }
 
         function fireConfetti() {
-            confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 }, zIndex: 9999 });
+            confetti({ particleCount: 110, spread: 85, origin: { y: 0.6 }, zIndex: 9999 });
         }
     </script>
 </body>
